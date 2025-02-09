@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify, render_template_string
-from flask_sqlalchemy import SQLAlchemy
-import jwt
-import pickle
-import xml.etree.ElementTree as ET
-import requests
 import base64
+import pickle
+
+import jwt
+import requests
+from flask import Flask, jsonify, render_template_string, request
+from flask_sqlalchemy import SQLAlchemy
+from lxml import etree
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-key'  # Hardcoded secret key
@@ -37,11 +38,12 @@ def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    
+
     # SQL Injection vulnerable query
     query = f"SELECT * FROM user WHERE username = '{username}' AND password = '{password}'"
-    user = db.engine.execute(query).first()
-    
+    with db.engine.connect() as conn:
+        user = conn.execute(db.text(query)).first()
+
     if user:
         token = jwt.encode({'user_id': user.id, 'role': user.role}, app.config['SECRET_KEY'], algorithm='HS256')
         return jsonify({'token': token})
@@ -102,11 +104,18 @@ def view_notes(user_id):
 # XXE Vulnerability
 @app.route('/process-xml', methods=['POST'])
 def process_xml():
-    xml_data = request.data
+    xml_data = request.data.decode('utf-8')  # Decode the byte data to string
     try:
-        tree = ET.parse(xml_data)
-        root = tree.getroot()
-        return jsonify({'processed': 'success'})
+        # Create a custom parser that allows external entities
+        parser = etree.XMLParser(load_dtd=True, resolve_entities=True)
+
+        # Parse the XML data
+        root = etree.fromstring(xml_data, parser=parser)
+
+        # Access the external entity
+        xxe_content = root.text  # This will contain the content of the external entity
+
+        return jsonify({'processed': 'success', 'content': xxe_content})
     except Exception as e:
         return jsonify({'error': str(e)})
 
@@ -115,7 +124,7 @@ def process_xml():
 def deserialize_data():
     data = base64.b64decode(request.get_json().get('data'))
     obj = pickle.loads(data)  # Vulnerable to pickle deserialization
-    return jsonify({'message': 'Data processed'})
+    return jsonify({'message': 'Data processed', 'content': str(obj)})  # Print the content of the deserialized object
 
 # SSRF Vulnerability
 @app.route('/fetch-url')
