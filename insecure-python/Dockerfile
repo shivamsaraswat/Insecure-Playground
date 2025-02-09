@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # --- Final Stage ---
-FROM cgr.dev/chainguard/python:latest@sha256:f2e50419f6e4eb6400fef06f1bcb1fb713878780062b2d0588e59cf540619637
+FROM cgr.dev/chainguard/python@sha256:f2e50419f6e4eb6400fef06f1bcb1fb713878780062b2d0588e59cf540619637
 
 WORKDIR /app
 

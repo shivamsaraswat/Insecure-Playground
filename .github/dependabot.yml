@@ -1,11 +1,11 @@
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
       interval: "daily"
 
-  - package-ecosystem: "docker" # See documentation for possible values
-    directory: "/insecure-python" # Location of package manifests
+  - package-ecosystem: "docker"
+    directory: "/insecure-python"
     schedule:
       interval: "daily"
