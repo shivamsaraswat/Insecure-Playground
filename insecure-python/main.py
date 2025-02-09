@@ -1,12 +1,9 @@
-from flask import Flask, request, jsonify, render_template_string, Response
+from flask import Flask, request, jsonify, render_template_string
 from flask_sqlalchemy import SQLAlchemy
 import jwt
 import pickle
-import json
-import yaml
 import xml.etree.ElementTree as ET
 import requests
-from datetime import datetime
 import base64
 
 app = Flask(__name__)
